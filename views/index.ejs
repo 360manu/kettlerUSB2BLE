@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta charset="utf-8">
+      <title>Test</title>
+	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+      <script src="http://code.jquery.com/jquery-3.1.1.min.js"></script>
+      <style>
+         #messageArea{
+            border: 1px solid black;
+			height: 300px;
+			margin-bottom: 8px;
+			overflow: scroll;
+			padding: 5px;
+         }
+		 .content {
+			padding: 30px 15px;
+			min-height: calc(100% - 123px);
+		}
+      </style>
+      <script type="text/javascript">
+         var socket = io.connect("192.168.1.36:3000");
+         socket.on('speed', function (data) {  
+			$('#speed').html(data);
+         });
+		 socket.on('hr', function (data) {  
+			$('#heartrate').html(data);
+         });
+		 socket.on('power', function (data) {  
+			$('#power').html(data);
+         });
+         socket.on('raw', function (data) {  
+         	$('#messageArea').append("<p>" + data + "</p>");
+         });
+         socket.on('error', function (data) {  
+         	$('#messageArea').append("<li>" + data + "</li>");
+         });
+         socket.on('key', function (data) {  
+         	$('#messageArea').append("<p>" + data + "</p>");
+         });
+           
+      </script>
+   </head>
+   <body>
+	   <div class="wrapper">
+			<div class="content">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="col-md-4">                       
+							<h4 class="title">Power</h4>
+							<p class="power" id="power">150</p>    
+						</div>
+
+						<div class="col-md-4">
+						   <h4 class="title">HR</h4>
+							<p class="heartrate" id="heartrate">80</p>  
+						</div>
+						
+						<div class="col-md-4">
+						   <h4 class="title">Speed</h4>
+							<p class="speed" id="speed">35</p>  
+						</div>
+					</div>
+					
+					<div class="row">
+						<div class="col-md-12">  
+							<div class="row" id="messageArea">			
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			 </div>
+		</div>
+   </body>
+</html>
