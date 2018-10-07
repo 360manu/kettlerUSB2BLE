@@ -39,8 +39,8 @@ class IndoorBikeDataCharacteristic extends Bleno.Characteristic {
 		if (DEBUG) console.log("notify");
 		var buffer = new Buffer(10);
 		// speed + power + heart rate
-		buffer.writeInt8(0x44, 0);
-		buffer.writeInt8(0x02, 1);
+		buffer.writeUInt8(0x44, 0);
+		buffer.writeUInt8(0x02, 1);
 
 		var index = 2;
 		if ('speed' in event) {

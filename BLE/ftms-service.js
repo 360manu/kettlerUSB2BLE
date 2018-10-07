@@ -7,10 +7,11 @@ const StaticReadCharacteristic = require('./static-read-characteristic');
 
 class FitnessMachineService extends Bleno.PrimaryService {
 
-	constructor() {
-		let controlPoint = new FitnessControlPoint();
-		 
+	constructor(callback) {
+		
+		let controlPoint = new FitnessControlPoint(callback);
 		let indoorBikeData = new IndoorBikeDataCharacteristic();
+		
 		super({
 			uuid: '1826',
 			characteristics: [
@@ -30,6 +31,8 @@ class FitnessMachineService extends Bleno.PrimaryService {
 	notify(event) {
 		this.indoorBikeData.notify(event);
 	};
+	
+	 
 }
 
 module.exports = FitnessMachineService;

@@ -136,6 +136,15 @@ function kettlerUSB() {
 		return self.emitter;
 	};
 	
+	this.restart = function () {
+		if (DEBUG) console.log("Kettler restart");
+		if (self.port.isOpen)
+		{
+			self.stop();
+			self.port.close();
+		}
+		setTimeout(self.open, 10000);
+	}
 	
 	this.start = function () {
 		// Je sais pas trop ce que ça fait mais ça initialise la bete
@@ -167,7 +176,7 @@ function kettlerUSB() {
 	
 	// set the bike power resistance
 	this.setPower = function (power) {
-	    self.write("PW"+power.toString());
+	    self.write("PW" + power.toString());
 	};
 	
 	// to string

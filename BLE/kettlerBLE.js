@@ -5,14 +5,14 @@ const FitnessMachineService = require('./ftms-service');
 
 class KettlerBLE extends EventEmitter {
 
-	constructor() {
+	constructor(serverCallback) {
 		super();
 
 		this.name = "KettlerBLE";
-		process.env['BLENO_DEVICE_NAME'] = this.name;
+		process.env['BLENO_DEVICE_NAME'] = this.name; 
 
 		this.csp = new CyclingPowerService();
-		this.ftms = new FitnessMachineService();
+		this.ftms = new FitnessMachineService(serverCallback); 
 
 		let self = this;
 		console.log(`[${this.name} starting]`);
@@ -70,14 +70,15 @@ class KettlerBLE extends EventEmitter {
 			console.log(`[${this.name} rssiUpdate]: ${rssi}`);
 		});
 
-		// start the ping
-		//this.ping();
 	}
 
+	// notifiy BLE services
 	notifyFTMS(event) {
 		this.csp.notify(event);
 		this.ftms.notify(event);
 	};
+	
+ 
 
 };
 
