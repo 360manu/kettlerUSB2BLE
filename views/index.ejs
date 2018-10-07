@@ -39,7 +39,14 @@
          socket.on('key', function (data) {  
          	$('#messageArea').append("<p>" + data + "</p>");
          });
-           
+		 
+		 $(function () {
+			var socket = io();
+			 $('form').submit(function(){
+				socket.emit('restart', 'Salut serveur, ça va ?');
+				return false;
+			 });
+		 });
       </script>
    </head>
    <body>
@@ -70,6 +77,13 @@
 						</div>
 					</div>
 					
+					<div class="row">
+						<div class="col-md-12">  
+							<form action="">
+							  <input id="m" autocomplete="off" /><button>Restart</button>
+							</form>
+						</div>
+					</div>
 				</div>
 			 </div>
 		</div>
