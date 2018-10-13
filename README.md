@@ -30,4 +30,4 @@ It will display the current power, HR et speed and some logs
 ## future
 * Zwift can connect and read the data.
 * Zwift (ipad) recongnize the FTMS service 
-* ERG mode is not yet implemented (FTMS control point)
+* ~~]ERG mode is not yet implemented (FTMS control point)~~
