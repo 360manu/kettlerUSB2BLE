@@ -100,7 +100,7 @@ For an automatic launch with the raspberry
 ```
 sudo systemctl link /home/pi/kettlerUSB2BLE/kettler.service
 ```
--> Created symlink /etc/systemd/system/kettler.service → /home/pi/KettlerUSB/kettler.service.
+-> Created symlink /etc/systemd/system/kettler.service → /home/pi/kettlerUSB2BLE/kettler.service.
 
 ```
 sudo systemctl enable kettler.service
