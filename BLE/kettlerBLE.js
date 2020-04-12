@@ -1,4 +1,4 @@
-const bleno = require('bleno');
+const bleno = require('@abandonware/bleno');
 const EventEmitter = require('events');
 const CyclingPowerService = require('./cycling-power-service');
 const FitnessMachineService = require('./ftms-service');

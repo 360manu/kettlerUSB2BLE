@@ -2,22 +2,46 @@
 <html>
    <head>
       <meta charset="utf-8">
-      <title>Test</title>
-	  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+      <title>Bike Controler</title>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
-      <script src="http://code.jquery.com/jquery-3.1.1.min.js"></script>
+	   <script src="http://code.jquery.com/jquery-3.1.1.min.js"></script>
       <style>
-         #messageArea{
-            border: 1px solid black;
-			height: 300px;
-			margin-bottom: 8px;
-			overflow: scroll;
-			padding: 5px;
-         }
-		 .content {
-			padding: 30px 15px;
-			min-height: calc(100% - 123px);
+		 html, body {
+			height: 100%
 		}
+		 .BoldH {
+			font-weight: bold;
+		 }
+		 
+		table {
+		  width: 100%;
+		  height: 100%;
+		  font-size: 30px;
+		  text-align: center;
+		}
+
+		td {
+		  width: 30%;
+		  height: 30%;
+		}
+		.numbers{
+			font-weight:900;
+			font-size:100px;
+		}
+		
+		button {
+		  height: 100%;
+		  width: 100%;
+		  margin: 5px;
+		  background-color: #7db9e8;
+		  font-size:60px;
+		}
+		
+		button:active{
+			background:olive;
+		}
+		
+	 
       </style>
       <script type="text/javascript">
          var socket = io.connect("192.168.1.36:3000");
@@ -30,62 +54,91 @@
 		 socket.on('power', function (data) {  
 			$('#power').html(data);
          });
-         socket.on('raw', function (data) {  
-         	$('#messageArea').append("<p>" + data + "</p>");
+		 socket.on('gear', function (data) {  
+			$('#gear').html(data);
          });
-         socket.on('error', function (data) {  
-         	$('#messageArea').append("<li>" + data + "</li>");
+		 socket.on('windspeed', function (data) {  
+			$('#windspeed').html(data);
          });
-         socket.on('key', function (data) {  
-         	$('#messageArea').append("<p>" + data + "</p>");
+		 socket.on('grade', function (data) {  
+			$('#grade').html(data);
          });
-		 
+		 socket.on('mode', function (data) {  
+			$('#mode').html(data);
+         });
+		 socket.on('mode', function (data) {  
+			if (data==='ERG')
+			{
+				$('#keyLeft').attr("data-value", "PowerDn");
+				$('#keyLeft').html("Power Dn");
+				$('#keyRight').attr("data-value", "PowerUp");
+				$('#keyRight').html("Power Up");
+			}
+			else
+			{
+				$('#keyLeft').attr("data-value", "GearDn");
+				$('#keyLeft').html( "Gear Dn");
+				$('#keyRight').attr("data-value", "GearUp");
+				$('#keyRight').html( "Gear Up");
+			}
+         });
 		 $(function () {
 			var socket = io();
-			 $('form').submit(function(){
-				socket.emit('restart', 'Salut serveur, ça va ?');
+			 $('button').click(function(){
+				socket.emit('key', $(this).attr("data-value"));
 				return false;
 			 });
 		 });
       </script>
    </head>
    <body>
-	   <div class="wrapper">
-			<div class="content">
-				<div class="container-fluid">
-					<div class="row">
-						<div class="col-md-4">                       
-							<h4 class="title">Power</h4>
-							<p class="power" id="power">150</p>    
-						</div>
+  
+<div id="dialog" title="Basic dialog">
+</div>
 
-						<div class="col-md-4">
-						   <h4 class="title">HR</h4>
-							<p class="heartrate" id="heartrate">80</p>  
-						</div>
-						
-						<div class="col-md-4">
-						   <h4 class="title">Speed</h4>
-							<p class="speed" id="speed">35</p>  
-						</div>
-					</div>
-					
-					<div class="row">
-						<div class="col-md-12">  
-							<div class="row" id="messageArea">			
-							</div>
-						</div>
-					</div>
-					
-					<div class="row">
-						<div class="col-md-12">  
-							<form action="">
-							  <input id="m" autocomplete="off" /><button>Restart</button>
-							</form>
-						</div>
-					</div>
-				</div>
-			 </div>
-		</div>
+	 <table id="phone">
+ 
+		  <tr>
+			<td> 
+				<div class="BoldH">Speed</div>
+				<div class="numbers" id="speed">0</div>  
+			</td>
+			<td>
+			  <div class="BoldH">Power</div>
+				<div class="numbers" id="power">0</div>   
+			</td>
+			<td>
+				<div class="BoldH" >Vent</div>
+				<div class="numbers" id="windspeed">0</div>  
+			</td>
+		  </tr>
+		  <tr>
+			<td>
+			  <button data-value="PowerDn" id="keyLeft">OFF</button>
+			</td>
+			<td> 
+				<div class="BoldH" id="mode">RAS</div>   
+			</td>
+			</td>
+			<td>
+			  <button data-value="PowerUp" id="keyRight">OFF</button>
+			</td>
+		  </tr>
+		  <tr>
+			<td> 
+				<div class="BoldH">Gear</div>
+				<div class="numbers" id="gear">1</div>   
+			</td>
+			<td>
+			  <button data-value="pause" class="key">Pause</button>
+			</td>
+			<td>
+				<div class="BoldH">Pente</div>
+				<div class="numbers" id="grade">0%</div>   
+			</td>
+		  </tr>
+				   
+	  </table>
+   
    </body>
 </html>

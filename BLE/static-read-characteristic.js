@@ -1,11 +1,11 @@
-const Bleno = require('bleno');
+const Bleno = require('@abandonware/bleno');
 
 class StaticReadCharacteristic extends Bleno.Characteristic {
 	constructor(uuid, description, value) {
 		super({
 			uuid: uuid,
 			properties: ['read'],
-			value: Buffer.isBuffer(value) ? value : new Buffer.from(value),
+			value: null,
 			descriptors: [
 				new Bleno.Descriptor({
 					uuid: '2901',
@@ -15,8 +15,13 @@ class StaticReadCharacteristic extends Bleno.Characteristic {
 		});
 		this.uuid = uuid;
 		this.description = description;
-		this.value = Buffer.isBuffer(value) ? value : new Buffer(value);
+		this._value = Buffer.isBuffer(value) ? value : new Buffer(value);
 	}
+	
+	onReadRequest(offset, callback) {
+		console.log('OnReadRequest : ' + this.description);
+		callback(this.RESULT_SUCCESS, this._value.slice(offset, this._value.length));
+	};
 }
 
 module.exports = StaticReadCharacteristic;

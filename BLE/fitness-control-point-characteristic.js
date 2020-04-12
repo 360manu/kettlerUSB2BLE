@@ -1,6 +1,6 @@
 
-var Bleno = require('bleno');
-var DEBUG = true;
+var Bleno = require('@abandonware/bleno');
+var DEBUG = false;
 
 // Spec
 // Control point op code
@@ -53,7 +53,7 @@ class FitnessControlPoint extends Bleno.Characteristic {
 				})
 			]
 		});
-		
+
 		this.underControl = false;
 		if (!callback)
 			throw "callback can't be null";
@@ -65,70 +65,98 @@ class FitnessControlPoint extends Bleno.Characteristic {
 		var state = data.readUInt8(0);
 		switch (state) {
 		case ControlPointOpCode.requestControl:
-			console.log('ControlPointOpCode.requestControl.');
+			if (DEBUG)
+				console.log('ControlPointOpCode.requestControl.');
 			if (!this.underControl) {
 				if (this.serverCallback('control')) {
-					console.log('control succeed.');
+					if (DEBUG)
+						console.log('control succeed.');
 					this.underControl = true;
 					callback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
-					console.log('control aborted.');
+					if (DEBUG)
+						console.log('control aborted.');
 					callback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
-				console.log('allready controled.');
+				if (DEBUG)
+					console.log('allready controled.');
 				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
 			}
 			break;
 
 		case ControlPointOpCode.resetControl:
-			console.log('ControlPointOpCode.resetControl.');
+			if (DEBUG)
+				console.log('ControlPointOpCode.resetControl.');
 			if (this.underControl) {
 				// reset the bike
 				if (this.serverCallback('reset')) {
 					this.underControl = false;
 					callback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
-					console.log('control reset controled.');
+					if (DEBUG)
+						console.log('control reset controled.');
 					callback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
-				console.log('reset without control.');
+				if (DEBUG)
+					console.log('reset without control.');
 				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
 			}
 			break;
 
 		case ControlPointOpCode.setTargetPower:
-			console.log('ControlPointOpCode.setTargetPower.');
+			if (DEBUG)
+				console.log('ControlPointOpCode.setTargetPower.');
 			if (this.underControl) {
 				var watt = data.readUInt16LE(1);
-				console.log('watt : ' + watt);
+				if (DEBUG)
+					console.log('watt : ' + watt);
 				if (this.serverCallback('power', watt)) {
 					callback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
-					console.log('setTarget failed');
+					if (DEBUG)
+						console.log('setTarget failed');
 					callback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
-				console.log('setTargetPower without control.');
+				if (DEBUG)
+					console.log('setTargetPower without control.');
 				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
 			}
+			break;
 
-			break;
 		case ControlPointOpCode.startOrResume:
-			console.log('ControlPointOpCode.startOrResume');
+			if (DEBUG)
+				console.log('ControlPointOpCode.startOrResume');
 			callback(this.buildResponse(state, ResultCode.success));
 			break;
+
 		case ControlPointOpCode.stopOrPause:
-			console.log('ControlPointOpCode.stopOrPause');
+			if (DEBUG)
+				console.log('ControlPointOpCode.stopOrPause');
 			callback(this.buildResponse(state, ResultCode.success));
 			break;
+
 		case ControlPointOpCode.setIndoorBikeSimulationParameters:
-			console.log('ControlPointOpCode.setIndoorBikeSimulationParameters');
-			callback(this.buildResponse(state, ResultCode.success));
+			if (DEBUG)
+				console.log('ControlPointOpCode.setIndoorBikeSimulationParameters');
+			var windspeed = data.readInt16LE(1) * 0.001;
+			var grade = data.readInt16LE(3) * 0.01;
+			var crr = data.readUInt8(5) * 0.0001;
+			var cw = data.readUInt8(6) * 0.01;
+			if (this.serverCallback('simulation', windspeed, grade, crr, cw)) {
+				callback(this.buildResponse(state, ResultCode.success));
+			} else {
+				if (DEBUG)
+					console.log('[fitness-control-point-characteristic.js] - simulation failed');
+				callback(this.buildResponse(state, ResultCode.operationFailed));
+			}
 			break;
+
 		default: // anything else : not yet implemented
-			console.log('State is not supported ' + state + '.');
+			if (DEBUG)
+				console.log('State is not supported ' + state + '.');
 			callback(this.buildResponse(state, ResultCode.opCodeNotSupported));
 			break;
 		}
