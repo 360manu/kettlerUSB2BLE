@@ -95,6 +95,17 @@ you can follow the bridge activity on a simple website.
 It will display the current power, HR et speed and some logs.
 It's also possible to switch gears.
 
+### Running as a service
+For an automatic launch with the raspberry 
+```
+sudo systemctl link /home/pi/kettlerUSB2BLE/kettler.service
+```
+-> Created symlink /etc/systemd/system/kettler.service → /home/pi/KettlerUSB/kettler.service.
+
+```
+sudo systemctl enable kettler.service
+sudo systemctl start kettler.service
+```
 
 ## future
 * Power Curve description with config
