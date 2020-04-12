@@ -1,7 +1,10 @@
 var $q = require('q');
 var EventEmitter = require('events').EventEmitter;
-var SerialPort  = require('serialport');
+var SerialPort = require('serialport');
 var DEBUG = false;
+
+const Readline = SerialPort.parsers.Readline;
+
 
 function kettlerUSB() {
 	var self = this;
@@ -22,11 +25,11 @@ function kettlerUSB() {
 		}
 		var string = self.pending.shift();
 		if (self.port) {
-			var buffer = new Buffer(string + EOL);
+			//var buffer = new Buffer(string + EOL);
 			if (DEBUG)
 				console.log('[OUT]: ' + string);
 			self.input = string;
-			self.port.write(buffer);
+			self.port.write(string + EOL);
 		} else {
 			if (DEBUG)
 				console.log('Communication port is not open - not sending data: ' + string);
@@ -124,36 +127,31 @@ function kettlerUSB() {
 	};
 
 	this.open = function () {
-		SerialPort.list().then(function(ports) {
+	/*	SerialPort.list().then(function (ports) {
 			ports.forEach(function (p) {
-				if (DEBUG)
-					console.log(p.vendorId + "  " + p.productId);
-				// kettler ?
-				if (p.vendorId == '0x10c4' && p.productId == '0xea60') {
-					if (DEBUG)
-						console.log("Kettler found on port " + p.comName);
+				console.log(p);
+				console.log(p.vendorId + "  " + p.productId);
+			})
+		});*/
+		// kettler ?
 
-					self.port = new SerialPort(p.comName, { baudrate: 9600 }, false);
-					const parser = new Readline();
-					self.port.pipe(parser);
+		self.port = new SerialPort('/dev/ttyUSB0', { baudRate: 9600}, false);
+		const parser = self.port.pipe(new Readline({ delimiter: '\r\n' }))
 
-					self.port.open(function (err) {
-						if (err) {
-							return console.log('Error opening port: ', err.message)
-						}
-					});
-
-					self.port.on('open', function () {
-						// we can only write one message every 100 ms
-						self.writer = setInterval(self.flushNext, 100);
-						// read state
-						self.reader = setInterval(self.askState, 1000);
-					});
-
-					self.port.on('data', self.readAndDispatch);
-				}
-			});
+		self.port.open(function (err) {
+			if (err) {
+				return console.log('Error opening port: ', err.message)
+			}
 		});
+
+		self.port.on('open', function () {
+			// we can only write one message every 100 ms
+			self.writer = setInterval(self.flushNext, 100);
+			// read state
+			self.reader = setInterval(self.askState, 1000);
+		});
+
+		parser.on('data', self.readAndDispatch);
 		return self.emitter;
 	};
 
