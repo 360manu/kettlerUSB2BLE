@@ -84,10 +84,16 @@ If you scan for BLE peripheral (use Nordic RF app fro ANdroid or IPhone for exam
 Your kettler bike should appear as KettlerBLE device with two services (power & FTMS)
 
 ### website
-*  modify the index.ejs file with the ip of your raspbery
+The Bridge is also a simple web server.
+It help debuging and have more feedback on the current state of the bike.
+
+I use a static IP for the PI (see the doc of your router)
+* modify the index.ejs (line 47) file with the ip of your raspbery
 * start your browser pi-adress:3000
+
 you can follow the bridge activity on a simple website.
-It will display the current power, HR et speed and some logs
+It will display the current power, HR et speed and some logs.
+It's also possible to switch gears.
 
 
 ## future
