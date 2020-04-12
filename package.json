@@ -10,12 +10,19 @@
   "author": "emmanuel candus",
   "license": "MIT",
   "dependencies": {
-    "bleno": "^0.5.0",
+    "@abandonware/bleno": "^0.5.1-2",
+    "@abandonware/bluetooth-hci-socket": "^0.5.3-5",
+    "@abandonware/noble": "^1.9.2-7",
+    "async": "^3.2.0",
     "ejs": "^2.6.1",
     "express": "^4.15.3",
+    "i2c-bus": "^5.1.0",
+    "input-event": "^1.2.6",
     "nodemon": "^1.14.3",
+    "oled-font-5x7": "^1.0.3",
+    "oled-i2c-bus": "^1.0.11",
     "q": "^1.4.1",
-    "serialport": "3.1.2",
+    "serialport": "^8.0.7",
     "socket.io": "^2.0.4"
   }
 }
