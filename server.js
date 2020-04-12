@@ -9,14 +9,8 @@ var Oled = require('./OledInfo');
 const app = express();
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
-
-app.get('/', function (req, res) {
-	res.render('index');
-});
-
-server = app.listen(3000, function () {
-		console.log('Kettler app listening on port 3000!');
-	});
+app.get('/', function (req, res) { 	res.render('index'); });
+server = app.listen(3000, function () { console.log('Kettler app listening on port 3000!'); });
 
 // socket.io instantiation
 const io = require("socket.io")(server);
@@ -51,37 +45,6 @@ io.on('connection', (socket) => {
 		}
 	});
 });
-
-/**** TEST ***/
-
-bikeState.on('simpower', (simpower) => {
-	console.log('target power ' + simpower);
-	dataFake.power = simpower;
-});
-// setInterval(mafonction, 5000);
-setInterval(mafonction2, 8000);
-
-var dataFake = {
-	rpm: 80 + 20 * (Math.random() - 0.5),
-	speed: 20,
-	power: 100
-};
-function mafonction() {
-	console.log('rpm ' + dataFake.rpm);
-	kettlerObs.emit('data', dataFake);
-	
-	dataFake = {
-	rpm: 80 + 20 * (Math.random() - 0.5),
-	speed: 20,
-	power: 100};
-};
-function mafonction2() {
-	var grade = 5; //20 * (Math.random() - 0.5);
-	bikeState.setExternalCondition(0, grade, 0.005, 0.39);
-	console.log('grade ' + grade);
-};
-
-
 // end WebServer
 
 // un peu de retour serveur  
