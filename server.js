@@ -2,7 +2,10 @@ var express = require('express');
 var kettlerUSB = require('./kettlerUSB');
 var KettlerBLE = require('./BLE/kettlerBLE');
 var DEBUG = false;
+var BikeState = require('./BikeState');
+var Oled = require('./OledInfo');
 
+/* Web Server on port 3000 for inspecting the Kettler State */
 const app = express();
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -12,94 +15,157 @@ app.get('/', function (req, res) {
 });
 
 server = app.listen(3000, function () {
-		if (DEBUG)
-			console.log('Kettler app listening on port 3000!');
+		console.log('Kettler app listening on port 3000!');
 	});
 
-//socket.io instantiation
+// socket.io instantiation
 const io = require("socket.io")(server);
 var kettlerUSB = new kettlerUSB();
 var kettlerBLE = new KettlerBLE(serverCallback);
+var bikeState = new BikeState();
+var oled = new Oled();
+
+// go
 var kettlerObs = kettlerUSB.open();
 
-/* Web server callback */
+// Web server callback
 io.on('connection', (socket) => {
-	if (DEBUG)
-		console.log('connected to socketio');
-
-	socket.on('reset', function (data) {
-		io.sockets.emit('raw', "connected");
-	});
-
-	socket.on('restart', function (data) {
-		if (DEBUG)
-			console.log('restart');
-		kettlerUSB.restart();
-		io.sockets.emit('raw', "connected");
+	socket.on('key', function (ev) {
+		console.log('key' + ev);
+		switch (ev) {
+		case 'PowerUp':
+			bikeState.addPower(20);
+			break;
+		case 'PowerDn':
+			bikeState.addPower(-20);
+			break;
+		case 'GearUp':
+			bikeState.GearUp();
+			break;
+		case 'GearDn':
+			bikeState.GearDown();
+			break;
+		case 'pause':
+			bikeState.setTargetPower(140);
+			break;
+		}
 	});
 });
 
-/* Bike information transfer to BLE & Webserver */
+/**** TEST ***/
+
+bikeState.on('simpower', (simpower) => {
+	console.log('target power ' + simpower);
+	dataFake.power = simpower;
+});
+// setInterval(mafonction, 5000);
+setInterval(mafonction2, 8000);
+
+var dataFake = {
+	rpm: 80 + 20 * (Math.random() - 0.5),
+	speed: 20,
+	power: 100
+};
+function mafonction() {
+	console.log('rpm ' + dataFake.rpm);
+	kettlerObs.emit('data', dataFake);
+	
+	dataFake = {
+	rpm: 80 + 20 * (Math.random() - 0.5),
+	speed: 20,
+	power: 100};
+};
+function mafonction2() {
+	var grade = 5; //20 * (Math.random() - 0.5);
+	bikeState.setExternalCondition(0, grade, 0.005, 0.39);
+	console.log('grade ' + grade);
+};
+
+
+// end WebServer
+
+// un peu de retour serveur  
+bikeState.on('mode', (mode) => {
+	io.emit('mode', mode);
+});
+bikeState.on('gear', (gear) => {
+	io.emit('gear', gear);
+	oled.displayGear(gear);
+});
+bikeState.on('grade', (grade) => {
+	io.emit('grade', grade + '%');
+	oled.displayGrade(grade);
+});
+bikeState.on('windspeed', (windspeed) => {
+	io.emit('windspeed', windspeed);
+});
+bikeState.on('simpower', (simpower) => {
+	kettlerUSB.setPower(simpower);
+});
+
+/* BRIDGE : Kettler USB infor to BLE peripheral & Webserver */
 kettlerObs.on('error', (string) => {
-	if (DEBUG)
-		console.log('error' + string);
+	console.log('error' + string);
 	io.emit('error', string);
 });
 
 kettlerObs.on('data', (data) => {
-	if (DEBUG)
-		console.log('data' + JSON.stringify(data));
+	// keep
+	bikeState.setData(data);
+	
 	// send to html server
 	if ('speed' in data)
-		io.emit('speed', data.speed);
+		io.emit('speed', data.speed.toFixed(1));
 	if ('power' in data)
 		io.emit('power', data.power);
 	if ('hr' in data)
 		io.emit('hr', data.hr);
+	if ('rpm' in data)
+		io.emit('rpm', data.rpm);
+
 	// send to BLE adapter
 	kettlerBLE.notifyFTMS(data);
 });
 
-kettlerObs.on('key', (string) => {
-	if (DEBUG)
-		console.log('key' + string);
-});
+// End Bridge
 
-kettlerObs.on('raw', (string) => {
-	if (DEBUG)
-		console.log('raw' + string);
-	io.emit('raw', string);
-});
-
-/* BLE callback section */
+// BLE FTMS to Bike & Server
 function serverCallback(message, ...args) {
 	var success = false;
 	switch (message) {
 	case 'reset':
-		if (DEBUG)
-			console.log('Bike Reset');
-		io.emit('raw', "Bike Reset");
+		console.log('[server.js] - Bike reset');
 		kettlerUSB.restart();
+		bikeState.restart();
 		success = true;
 		break;
+
 	case 'control':
-		if (DEBUG)
-			console.log('Bike control');
-		io.emit('raw', "Bike control");
+		console.log('[server.js] - Bike is under control');
+		bikeState.setControl();
+		success = true;
+		break;
+
+	case 'power':
+		console.log('[server.js] - Bike in ERG Mode');
+		bikeState.setTargetPower(args[0]);
+		success = true;
+		break;
+
+	case 'simulation': // SIM Mode - calculate power based on physics
+		//console.log('[server.js] - Bike in SIM Mode');
+		var windspeed = Number(args[0]);
+		var grade = Number(args[1]);
+		var crr = Number(args[2]);
+		var cw = Number(args[3]);
+		console.log('[server.js] - Bike SIM Mode - [wind]: ' + (windspeed*3.6).toFixed(1) + 'hm/h [grade]: ' + grade.toFixed(1) + '% [crr]: ' + crr + ' [cw]: ' + cw)
+
+		bikeState.setExternalCondition(windspeed, grade, crr, cw);
 		// nothing special
 		success = true;
 		break;
-	case 'power':
-		if (DEBUG)
-			console.log('Bike set Power');
-		if (args.length > 0) {
-			var watt = args[0];
-			kettlerUSB.setPower(watt);
-			io.emit('raw', "Bike : set Power to " + watt);
-			success = true;
-		}
-		break;
 	}
+
 	return success;
 };
 
