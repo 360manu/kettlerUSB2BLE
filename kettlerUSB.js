@@ -1,57 +1,58 @@
 var $q = require('q');
 var EventEmitter = require('events').EventEmitter;
 var SerialPort = require('serialport');
-var DEBUG = false;
+var DEBUG = true;
+var MOCKDEBUG = false;
 
 const Readline = SerialPort.parsers.Readline;
+const EOL = '\r\n'; // CRLF
+var portName = '/dev/ttyUSB0';
 
+if (MOCKDEBUG) {
+	const Mock = require('@serialport/binding-mock');
+	SerialPort.Binding = Mock;
+	portName = '/dev/ROBOT';
+	Mock.createPort(portName, {
+		echo: true
+	});
+}
 
-function kettlerUSB() {
-	var self = this;
-	self.port = null;
-	self.pending = [];
-	self.writer = null;
-	self.reader = null;
-	self.emitter = new EventEmitter();
-	var EOL = '\r\n'; // CRLF
-
-	this.write = function (string) {
-		self.pending.push(string);
+class kettlerUSB extends EventEmitter {
+	constructor() {
+		console.log('[KettlerUSB] constructor');
+		super();
+		this.msg = ["VE", "ID", "VE", "KI", "CA", "RS", "CM", "SP1"];
+		//start at -1
+		this.writePower = false;
+		this.power = -1;
 	};
 
-	this.flushNext = function () {
-		if (self.pending.length == 0) {
-			return;
-		}
-		var string = self.pending.shift();
-		if (self.port) {
-			//var buffer = new Buffer(string + EOL);
-			if (DEBUG)
-				console.log('[OUT]: ' + string);
-			self.input = string;
-			self.port.write(string + EOL);
-		} else {
-			if (DEBUG)
-				console.log('Communication port is not open - not sending data: ' + string);
-		}
+	directWrite(data) {
+		if (DEBUG)
+			console.log('[KettlerUSB] write : ' + data);
+		this.port.write(data + EOL);
 	};
 
-	// require state from the bike
-	this.askState = function () {
-		self.write("ST");
-	}
+	async readAndDispatch(data) {
 
-	this.readAndDispatch = function (string) {
-		// on ne traite que les retour de demande d'etat
-		if (self.input != 'ST')
+		if (typeof data != "string") {
+			console.log('[KettlerUSB] strange data');
+			console.log(data);
 			return;
+		}
 
 		if (DEBUG) {
-			console.log('[IN]: ' + string);
-			self.emitter.emit('raw', string);
+			if (MOCKDEBUG) {
+				if (data == 'ST' || data.startsWith('PW'))
+					data = '101\t85\t35\t002\t' + this.power + '\t300\t01:12\t' + this.power;
+			}
+			if (this.last == null)
+				this.last = Date.now();
+			console.log('[KettlerUSB] read [' + (Date.now() - this.last) + '] :  ' + data);
+			this.last = Date.now();
 		}
 
-		var states = string.split('\t');
+		var states = data.split('\t');
 
 		// Analyse le retour de ST
 		//      101     047     074    002     025      0312    01:12   025
@@ -71,39 +72,39 @@ function kettlerUSB() {
 		//   in PC mode: can be set with "pt mmss", counting up
 		//8: current power on eddy current brake
 		if (states.length == 8) {
-			var data = {};
+			var dataOut = {};
 			// puissance
 			var power = parseInt(states[7]);
 			if (!isNaN(power)) {
-				data.power = power;
+				dataOut.power = power;
 			}
 
 			// speed
 			var speed = parseInt(states[2]);
 			if (!isNaN(speed)) {
-				data.speed = speed * 0.1;
+				dataOut.speed = speed * 0.1;
 			}
 
 			// cadence
 			var cadence = parseInt(states[1]);
 			if (!isNaN(cadence)) {
-				data.cadence = cadence;
+				dataOut.cadence = cadence;
 			}
 
 			// HR
 			var hr = parseInt(states[0]);
 			if (!isNaN(hr)) {
-				data.hr = hr;
+				dataOut.hr = hr;
 			}
 
 			// rpm
 			var rpm = parseInt(states[1]);
 			if (!isNaN(rpm)) {
-				data.rpm = rpm;
+				dataOut.rpm = rpm;
 			}
 
 			if (Object.keys(data).length > 0)
-				self.emitter.emit('data', data);
+				this.emit('data', dataOut);
 		}
 		//                command: es 1
 		// Le dernier chiffre semble etre une touche
@@ -112,98 +113,107 @@ function kettlerUSB() {
 			// key
 			var key = parseInt(states[3]);
 			if (!isNaN(key)) {
-				self.emitter.emit('key', key);
+				this.emit('key', key);
 			}
 		} else {
-			self.unknownHandler(string);
+			if (DEBUG)
+				console.log('[KettlerUSB] Unrecognized packet');
 		}
 	};
 
-	// handlers start
-	this.unknownHandler = function (string) {
-		if (DEBUG)
-			console.log('Unrecognized packet: ' + string);
-		self.emitter.emit('error', string);
-	};
+	// Open COM port
+	open() {
+		console.log('[KettlerUSB] open');
+		this.emit('connecting');
+		// create and open a Serial port
+		this.port = new SerialPort(portName, {
+				baudRate: 9600,
+				autoOpen: false
+			});
+		this.parser = this.port.pipe(new Readline({
+					delimiter: '\r\n'
+				}));
+		this.parser.on('data', (data) => this.readAndDispatch(data));
 
-	this.open = function () {
-	/*	SerialPort.list().then(function (ports) {
-			ports.forEach(function (p) {
-				console.log(p);
-				console.log(p.vendorId + "  " + p.productId);
-			})
-		});*/
-		// kettler ?
+		// try open
+		this.internalOpen();
 
-		self.port = new SerialPort('/dev/ttyUSB0', { baudRate: 9600}, false);
-		const parser = self.port.pipe(new Readline({ delimiter: '\r\n' }))
-
-		self.port.open(function (err) {
-			if (err) {
-				return console.log('Error opening port: ', err.message)
-			}
-		});
-
-		self.port.on('open', function () {
-			// we can only write one message every 100 ms
-			self.writer = setInterval(self.flushNext, 100);
+		this.port.on('open', () => {
 			// read state
-			self.reader = setInterval(self.askState, 1000);
+			// inform it's ok
+			this.emit('open');
+
+			// Je sais pas trop ce que ça fait mais ça initialise la bete
+			this.init();
+			this.port.drain();
+			this.emit('start');
+
+			// start polling in 3s for the state
+			setTimeout(() => this.askState(), 3000);
 		});
 
-		parser.on('data', self.readAndDispatch);
-		return self.emitter;
+		this.port.on('close', () => {
+			console.log('closing');
+		});
 	};
 
-	this.restart = function () {
-		if (DEBUG)
-			console.log("Kettler restart");
-		if (self.port.isOpen) {
-			self.stop();
-			self.port.close();
+	internalOpen() {
+		this.port.open((err) => {
+			if (!err)
+				return;
+			console.log('[KettlerUSB] port is not open, retry in 10s');
+			setTimeout(() => this.internalOpen(), 10000);
+		});
+	};
+
+	// let's initialize com with the bike
+
+	init() {
+		if (this.msg.length == 0)
+			return;
+		var m = this.msg.shift();
+		this.directWrite(m);
+		setTimeout(() => this.init(), 150);
+	};
+
+	// require state from the bike
+	askState() {
+		if (this.writePower) {
+			this.directWrite("PW" + this.power.toString());
+			this.writePower = false;
+		} else {
+			this.directWrite("ST");
 		}
-		setTimeout(self.open, 10000);
+		// call back later
+		setTimeout(() => this.askState(), 2000);
 	}
 
-	this.start = function () {
-		// Je sais pas trop ce que ça fait mais ça initialise la bete
-		self.write("VE");
-		self.write("ID"); // l"id du racer, ça retoure un truc genre SGSXXX
-		self.write("VE");
-		self.write("KI"); // doit repondre Ergorace
-		self.write("CA");
-		// init
-		self.write("RS"); // reset
-		self.write("CM"); // command mode
-		self.write("SP1"); // manu = 1 , sinon 0 à 4 (0 = invité)
-	};
+	// restart a connection
+	restart() {
+		if (this.port.isOpen) {
+			this.stop();
+			this.port.close();
+			this.emit('stop');
+		}
+		setTimeout(() => this.open(), 10000);
+	}
 
-	this.stop = function () {
+	// Stop the port
+	stop() {
 		// fermeture
-		self.write("VE");
-		self.write("ID");
-		self.write("VE");
-
-		self.pending = [];
-		if (self.writer) {
-			clearInterval(self.writer);
-		}
-		if (self.reader) {
-			clearInterval(self.reader);
-		}
+		this.directWrite("VE");
+		this.directWrite("ID");
+		this.directWrite("VE");
 	};
 
 	// set the bike power resistance
-	this.setPower = function (power) {
+	setPower(power) {
 		var p = parseInt(Math.max(0, power), 10);
-		self.write("PW" + p.toString());
+		if (p != this.power) {
+			this.power = p;
+			this.writePower = true;
+		}
 	};
-
-	// to string
-	this.toString = function () {
-		return "Kettler on " + self.port.comName;
-	};
-
-}
+};
 
 module.exports = kettlerUSB
