@@ -1,3 +1,4 @@
+/*
 var util = require('util');
 var fs = require('fs');
 var ws = fs.createWriteStream('./Ketter.log', {
@@ -9,7 +10,7 @@ t.pipe(process.stdout);
 t.pipe(ws);
 console.log = function () {
 	t.write(util.format.apply(this, arguments) + '\n');
-};
+};*/
 
 var DEBUG = false;
 var express = require('express');
