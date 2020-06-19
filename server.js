@@ -17,7 +17,7 @@ var express = require('express');
 var kettlerUSB = require('./kettlerUSB');
 var KettlerBLE = require('./BLE/kettlerBLE');
 var BikeState = require('./BikeState');
-var Oled = require('./OledInfo');
+//var Oled = require('./OledInfo');
 var Button = require('./lib/rpi_gpio_buttons');
 
 //--- Web Server on port 3000 for inspecting the Kettler State
@@ -65,7 +65,7 @@ button.on('clicked', function () {
 });
  
 //--- Oled Screen
-var oled = new Oled();
+//var oled = new Oled();
 
 //--- Machine State
 var bikeState = new BikeState();
@@ -75,11 +75,11 @@ bikeState.on('mode', (mode) => {
 });
 bikeState.on('gear', (gear) => {
 	io.emit('gear', gear);
-	oled.displayGear(gear);
+	// oled.displayGear(gear);
 });
 bikeState.on('grade', (grade) => {
 	io.emit('grade', grade + '%');
-	oled.displayGrade(grade);
+	// oled.displayGrade(grade);
 });
 bikeState.on('windspeed', (windspeed) => {
 	io.emit('windspeed', windspeed);
@@ -97,10 +97,10 @@ kettlerUSB.on('error', (string) => {
 	io.emit('error', string);
 });
 kettlerUSB.on('connecting', () => {
-	oled.displayUSB('connecting');
+	//oled.displayUSB('connecting');
 });
 kettlerUSB.on('start', () => {
-	oled.displayUSB('connected');
+	//oled.displayUSB('connected');
 });
 kettlerUSB.on('data', (data) => {
 	// keep
@@ -125,13 +125,13 @@ kettlerUSB.open();
 var kettlerBLE = new KettlerBLE(serverCallback);
 
 kettlerBLE.on('advertisingStart', (client) => {
-	oled.displayBLE('Started');
+	//oled.displayBLE('Started');
 });
 kettlerBLE.on('accept', (client) => {
-	oled.displayBLE('Connected');
+	//oled.displayBLE('Connected');
 });
 kettlerBLE.on('disconnect', (client) => {
-	oled.displayBLE('Disconnected');
+	//oled.displayBLE('Disconnected');
 });
 
 function serverCallback(message, ...args) {
@@ -146,7 +146,7 @@ function serverCallback(message, ...args) {
 
 	case 'control':
 		console.log('[server.js] - Bike is under control');
-		oled.setStatus(1);
+		//oled.setStatus(1);
 		bikeState.setControl();
 		success = true;
 		break;
