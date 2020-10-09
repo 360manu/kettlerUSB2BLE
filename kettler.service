@@ -1,0 +1,12 @@
+[Service]
+ExecStart=sudo /usr/local/bin/node server.js
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=Kettler
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/KettlerUSB
+
+[Install]
+WantedBy=multi-user.target
