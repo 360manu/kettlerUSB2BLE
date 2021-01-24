@@ -15,15 +15,18 @@ I was able to test it on a Kettler Ergorace (https://www.bikeradar.com/reviews/t
 ## Quick Setup
 An image of the full system is available.
 You can directly download and write it on an sd card.
+
 it contains:
 - a Raspbian systeme
 - KettlerUSB (without Oled Display)
 - An autostart script
+
 it also inclue
 - a wifi hotspot to access the Pi. (password is always = Password)
 
 Download this image
 https://drive.google.com/file/d/13brFb1yyl03pNfKIfYgkOhw5_Ije4iDB/view?usp=sharing
+
 Follow these instructions: 
 https://opensource.com/article/17/3/how-write-sd-cards-raspberry-pi
 
