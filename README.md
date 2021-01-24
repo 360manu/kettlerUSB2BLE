@@ -12,6 +12,23 @@ it's a work in progress:
 
 I was able to test it on a Kettler Ergorace (https://www.bikeradar.com/reviews/training/indoor-trainers/resistance-trainer/kettler-ergorace-trainer-review/) and ZWIFT.
 
+## Minimal requirements
+You need a Raspeberyy Pi zero W. The "W" version is important as you need the bluetooth version.
+
+Kubii is a very good site, with good prices.
+- the raspberry zeroW card: https://www.kubii.fr/les-cartes-raspberry-pi/1851-raspberry-pi-zero-w-kubii-3272496006997.html
+- a small box to stick it under the bike : https://www.kubii.fr/accessoires-officiels-raspberry-pi/1845-boitier-officiel-pour-pi-zero-kubii-3272496006966.html
+- a Micro SD card (4go is enough)
+- Power Supply : USB charger 1 Ampere minimum
+- micro USB cable of minimum 1.5m long (to run it along the bike)
+
+the following kit contains a lot of stuff (Budget)
+https://www.kubii.fr/home/2077-kit-pi-zero-w-kubii-3272496009509.html#/237-selectionnez_votre_kit-starter_16_go
+
+To connect the Raspberry to the bike
+- a usb cable B to micro-USB https://www.amazon.fr/Apark-USB-Connecteur-Interface-Adaptateur/dp/B0885SV415/ref=sr_1_6?__mk_fr_FR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&dchild=1&keywords=cable%2BUSB%2Bb%2Bvers%2Bmicro%2Busb&qid=1606051026&quartzVehicle=694-1217&replacementKeywords=cable%2Busb%2Bvers%2Bmicro%2Busb&sr=8-6&th=1
+- or an adaptor + usb Cable
+
 ## Quick Setup
 An image of the full system is available.
 You can directly download and write it on an sd card.
