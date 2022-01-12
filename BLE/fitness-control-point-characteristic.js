@@ -44,7 +44,7 @@ class FitnessControlPoint extends Bleno.Characteristic {
 		super({
 			uuid: '2AD9',
 			value: null,
-			properties: ['write'],
+			properties: ['write', 'indicate'],
 			descriptors: [
 				new Bleno.Descriptor({
 					// Client Characteristic Configuration
@@ -57,107 +57,129 @@ class FitnessControlPoint extends Bleno.Characteristic {
 		this.underControl = false;
 		if (!callback)
 			throw "callback can't be null";
-		this.serverCallback = callback;
+		this.ClientCallback = callback;
 	}
+	
+	
+	onSubscribe(maxValueSize, updateValueCallback) {
+		if (DEBUG)
+			console.log('[FitnessControlPoint] onSubscribe');
+		this.serverCallback = updateValueCallback;
+		return this.RESULT_SUCCESS;
+	};
+
+	onUnsubscribe() {
+		if (DEBUG)
+			console.log('[FitnessControlPoint] onUnsubscribe');
+		this.serverCallback = null;
+		return this.RESULT_UNLIKELY_ERROR;
+	};
+
+	onIndicate() {
+		if (DEBUG)
+			console.log('[FitnessControlPoint] onIndicate');
+	};
 
 	// Follow Control Point instruction from the client
 	onWriteRequest(data, offset, withoutResponse, callback) {
 		var state = data.readUInt8(0);
+		callback(this.RESULT_SUCCESS);
+		 
 		switch (state) {
 		case ControlPointOpCode.requestControl:
 			if (DEBUG)
-				console.log('ControlPointOpCode.requestControl.');
+				console.log('[FitnessControlPoint] ControlPointOpCode.requestControl.');
 			if (!this.underControl) {
-				if (this.serverCallback('control')) {
+				if (this.ClientCallback('control')) {
 					if (DEBUG)
-						console.log('control succeed.');
+						console.log('[FitnessControlPoint] control succeed.');
 					this.underControl = true;
-					callback(this.buildResponse(state, ResultCode.success)); // ok
+					this.serverCallback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
 					if (DEBUG)
-						console.log('control aborted.');
-					callback(this.buildResponse(state, ResultCode.operationFailed));
+						console.log('[FitnessControlPoint] control aborted.');
+					this.serverCallback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
 				if (DEBUG)
-					console.log('allready controled.');
-				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
+					console.log('[FitnessControlPoint] allready controled.');
+				this.serverCallback(this.buildResponse(state, ResultCode.success));
 			}
 			break;
 
 		case ControlPointOpCode.resetControl:
 			if (DEBUG)
-				console.log('ControlPointOpCode.resetControl.');
+				console.log('[FitnessControlPoint] ControlPointOpCode.resetControl.');
 			if (this.underControl) {
 				// reset the bike
-				if (this.serverCallback('reset')) {
+				if (this.ClientCallback('reset')) {
 					this.underControl = false;
-					callback(this.buildResponse(state, ResultCode.success)); // ok
+					this.serverCallback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
 					if (DEBUG)
-						console.log('control reset controled.');
-					callback(this.buildResponse(state, ResultCode.operationFailed));
+						console.log('[FitnessControlPoint] control reset controled.');
+					this.serverCallback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
 				if (DEBUG)
-					console.log('reset without control.');
-				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
+					console.log('[FitnessControlPoint] reset without control.');
+				this.serverCallback(this.buildResponse(state, ResultCode.controlNotPermitted));
 			}
 			break;
 
 		case ControlPointOpCode.setTargetPower:
 			if (DEBUG)
-				console.log('ControlPointOpCode.setTargetPower.');
+				console.log('[FitnessControlPoint] ControlPointOpCode.setTargetPower.');
 			if (this.underControl) {
 				var watt = data.readUInt16LE(1);
 				if (DEBUG)
-					console.log('watt : ' + watt);
-				if (this.serverCallback('power', watt)) {
-					callback(this.buildResponse(state, ResultCode.success)); // ok
+					console.log('[FitnessControlPoint] watt : ' + watt);
+				if (this.ClientCallback('power', watt)) {
+					this.serverCallback(this.buildResponse(state, ResultCode.success)); // ok
 				} else {
 					if (DEBUG)
-						console.log('setTarget failed');
-					callback(this.buildResponse(state, ResultCode.operationFailed));
+						console.log('[FitnessControlPoint] setTarget failed');
+					this.serverCallback(this.buildResponse(state, ResultCode.operationFailed));
 				}
 			} else {
 				if (DEBUG)
-					console.log('setTargetPower without control.');
-				callback(this.buildResponse(state, ResultCode.controlNotPermitted));
+					console.log('[FitnessControlPoint] setTargetPower without control.');
+				this.serverCallback(this.buildResponse(state, ResultCode.controlNotPermitted));
 			}
 			break;
 
 		case ControlPointOpCode.startOrResume:
 			if (DEBUG)
-				console.log('ControlPointOpCode.startOrResume');
-			callback(this.buildResponse(state, ResultCode.success));
+				console.log('[FitnessControlPoint] ControlPointOpCode.startOrResume');
+			this.serverCallback(this.buildResponse(state, ResultCode.success));
 			break;
 
 		case ControlPointOpCode.stopOrPause:
 			if (DEBUG)
-				console.log('ControlPointOpCode.stopOrPause');
-			callback(this.buildResponse(state, ResultCode.success));
+				console.log('[FitnessControlPoint] ControlPointOpCode.stopOrPause');
+			this.serverCallback(this.buildResponse(state, ResultCode.success));
 			break;
 
 		case ControlPointOpCode.setIndoorBikeSimulationParameters:
 			if (DEBUG)
-				console.log('ControlPointOpCode.setIndoorBikeSimulationParameters');
+				console.log('[FitnessControlPoint] ControlPointOpCode.setIndoorBikeSimulationParameters');
 			var windspeed = data.readInt16LE(1) * 0.001;
 			var grade = data.readInt16LE(3) * 0.01;
 			var crr = data.readUInt8(5) * 0.0001;
 			var cw = data.readUInt8(6) * 0.01;
-			if (this.serverCallback('simulation', windspeed, grade, crr, cw)) {
-				callback(this.buildResponse(state, ResultCode.success));
+			if (this.ClientCallback('simulation', windspeed, grade, crr, cw)) {
+				this.serverCallback(this.buildResponse(state, ResultCode.success));
 			} else {
 				if (DEBUG)
-					console.log('[fitness-control-point-characteristic.js] - simulation failed');
-				callback(this.buildResponse(state, ResultCode.operationFailed));
+					console.log('[FitnessControlPoint] simulation failed');
+				this.serverCallback(this.buildResponse(state, ResultCode.operationFailed));
 			}
 			break;
 
 		default: // anything else : not yet implemented
 			if (DEBUG)
-				console.log('State is not supported ' + state + '.');
-			callback(this.buildResponse(state, ResultCode.opCodeNotSupported));
+				console.log('[FitnessControlPoint] State is not supported ' + state + '.');
+			this.serverCallback(this.buildResponse(state, ResultCode.opCodeNotSupported));
 			break;
 		}
 	};
